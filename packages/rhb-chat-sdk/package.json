@@ -1,0 +1,44 @@
+{
+  "name": "rhb-chat-sdk",
+  "version": "1.0.0",
+  "description": "RHB AI Chat SDK for React Native and Expo applications",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch",
+    "clean": "rm -rf lib"
+  },
+  "keywords": [
+    "react-native",
+    "expo",
+    "chat",
+    "ai",
+    "sdk",
+    "rhb"
+  ],
+  "author": "RHB Banking Group",
+  "license": "MIT",
+  "peerDependencies": {
+    "react": ">=16.8.0",
+    "react-native": ">=0.60.0",
+    "@expo/vector-icons": ">=14.0.0",
+    "expo-image-picker": ">=15.0.0",
+    "expo-document-picker": ">=12.0.0",
+    "expo-audio": ">=0.4.0",
+    "expo-media-library": ">=17.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.0.0",
+    "@types/react-native": "^0.70.0",
+    "typescript": "^5.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rhb-banking/rhb-chat-sdk.git"
+  },
+  "bugs": {
+    "url": "https://github.com/rhb-banking/rhb-chat-sdk/issues"
+  },
+  "homepage": "https://github.com/rhb-banking/rhb-chat-sdk#readme"
+}
