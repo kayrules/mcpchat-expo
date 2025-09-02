@@ -1,13 +1,13 @@
 import React from 'react';
 import { TouchableOpacity, StyleSheet, Animated } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { FloatingChatButtonProps } from '../types';
 
 const FloatingChatButton: React.FC<FloatingChatButtonProps> = ({ onPress, style }) => {
   return (
     <TouchableOpacity style={[styles.container, style]} onPress={onPress} activeOpacity={0.8}>
       <Animated.View style={styles.button}>
-        <MaterialIcons name="chat" size={24} color="#FFFFFF" />
+        <MaterialCommunityIcons name="chat" size={34} color="#FFFFFF" />
       </Animated.View>
     </TouchableOpacity>
   );
@@ -16,14 +16,14 @@ const FloatingChatButton: React.FC<FloatingChatButtonProps> = ({ onPress, style 
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    bottom: 30,
-    right: 20,
+    bottom: 60,
+    right: 35,
     zIndex: 999,
   },
   button: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 70,
+    height: 70,
+    borderRadius: 35,
     backgroundColor: '#007AFF',
     justifyContent: 'center',
     alignItems: 'center',

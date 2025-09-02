@@ -1809,7 +1809,7 @@ PODS:
     - React-utils (= 0.79.6)
   - RNCMaskedView (0.1.11):
     - React
-  - RNScreens (4.15.3):
+  - RNScreens (4.15.4):
     - DoubleConversion
     - glog
     - hermes-engine
@@ -1833,9 +1833,9 @@ PODS:
     - ReactCodegen
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
-    - RNScreens/common (= 4.15.3)
+    - RNScreens/common (= 4.15.4)
     - Yoga
-  - RNScreens/common (4.15.3):
+  - RNScreens/common (4.15.4):
     - DoubleConversion
     - glog
     - hermes-engine
@@ -2223,7 +2223,7 @@ SPEC CHECKSUMS:
   ReactCodegen: 06cf663b23a161f42a2e14087269753f422885c0
   ReactCommon: 44c86ec3ace664c0f33b7a2ac89aced8304ef25e
   RNCMaskedView: 4c5ee1c8667d56077246cc6d1977f77393923560
-  RNScreens: d60719d9d279495018933bf47a3dff51c4b6ea2c
+  RNScreens: f0678748c5310b49a3f920f1485f5ec477afd345
   SocketRocket: d4aabe649be1e368d1318fdf28a022d714d65748
   Yoga: dc7c21200195acacb62fa920c588e7c2106de45e
   ZXingObjC: 8898711ab495761b2dbbdec76d90164a6d7e14c5
