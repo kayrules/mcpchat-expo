@@ -70,5 +70,11 @@
     <string>Light</string>
     <key>UIViewControllerBasedStatusBarAppearance</key>
     <false/>
+    <key>NSCameraUsageDescription</key>
+    <string>This app needs access to camera to take photos for chat</string>
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>This app needs access to photo library to share images in chat</string>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>This app needs access to microphone for voice messages</string>
   </dict>
 </plist>

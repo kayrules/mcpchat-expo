@@ -21,6 +21,8 @@ import { AudioRecorder, AudioPlayer } from 'expo-audio';
 import * as MediaLibrary from 'expo-media-library';
 import { ChatScreenProps, ChatMessage, SuggestedPrompt } from '../types';
 
+const rhbLogo = require('../../assets/rhblogo.png');
+
 const defaultPrompts: SuggestedPrompt[] = [
   {
     title: 'What can RHB.ai do?',
@@ -124,7 +126,17 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ onClose, config = {} }) => {
       // Request camera permissions
       const { status } = await ImagePicker.requestCameraPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission required', 'Camera access is needed to take photos');
+        Alert.alert(
+          'Permission Required', 
+          'Camera access is needed to take photos. Please enable camera permissions in your device settings.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Open Settings', onPress: () => {
+              // For Expo, you can't directly open settings, but provide guidance
+              Alert.alert('Enable Permissions', 'Go to Settings > Privacy & Security > Camera and enable access for this app.');
+            }}
+          ]
+        );
         return;
       }
 
@@ -141,7 +153,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ onClose, config = {} }) => {
       }
     } catch (error) {
       console.error('Camera error:', error);
-      Alert.alert('Error', 'Failed to take photo');
+      Alert.alert('Error', 'Camera feature requires proper configuration. Please check the installation guide.');
     }
   };
 
@@ -200,20 +212,14 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ onClose, config = {} }) => {
     try {
       const recorder = new AudioRecorder({
         extension: '.m4a',
-        outputFormat: 'mpeg4',
-        audioQuality: 'high',
-        sampleRate: 44100,
-        numberOfChannels: 1,
       });
-
-      await recorder.prepareAsync();
-      await recorder.startAsync();
+      await recorder.record();
       
       setAudioRecorder(recorder);
       setIsRecording(true);
     } catch (error) {
       console.error('Failed to start recording:', error);
-      Alert.alert('Error', 'Failed to start recording');
+      Alert.alert('Error', 'Audio recording requires proper configuration. Please check the installation guide.');
     }
   };
 
@@ -221,11 +227,8 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ onClose, config = {} }) => {
     if (!audioRecorder) return;
 
     try {
-      const uri = await audioRecorder.stopAsync();
-      
-      if (uri) {
-        addMediaMessage('audio', uri, 'Voice message');
-      }
+      await audioRecorder.stop();
+      addMediaMessage('audio', undefined, 'Voice message');
       
       setAudioRecorder(null);
       setIsRecording(false);
@@ -316,7 +319,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ onClose, config = {} }) => {
               onPress={() => handleShortcut(shortcut.type)}
             >
               <View style={styles.shortcutIconContainer}>
-                <MaterialIcons name={shortcut.icon} size={24} color={theme.primaryColor || "#007AFF"} />
+                <MaterialIcons name={shortcut.icon as any} size={24} color={theme.primaryColor || "#007AFF"} />
               </View>
               <Text style={styles.shortcutLabel}>{shortcut.label}</Text>
             </TouchableOpacity>
@@ -379,13 +382,11 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ onClose, config = {} }) => {
           <MaterialIcons name="close" size={24} color="#000000" />
         </TouchableOpacity>
         
-        {config.logoSource && (
-          <Image 
-            source={config.logoSource} 
-            style={styles.rhbLogo}
-            resizeMode="contain"
-          />
-        )}
+        <Image 
+          source={config.logoSource || rhbLogo} 
+          style={styles.rhbLogo}
+          resizeMode="contain"
+        />
         
         <TouchableOpacity>
           <MaterialIcons name="fullscreen" size={24} color="#000000" />

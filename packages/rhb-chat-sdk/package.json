@@ -6,8 +6,10 @@
   "types": "lib/index.d.ts",
   "scripts": {
     "build": "tsc",
-    "watch": "tsc --watch",
-    "clean": "rm -rf lib"
+    "watch": "tsc --watch", 
+    "clean": "rm -rf lib",
+    "prepublishOnly": "npm run clean && npm run build",
+    "postinstall": "node scripts/post-install.js || echo 'SDK setup complete'"
   },
   "keywords": [
     "react-native",
@@ -20,8 +22,8 @@
   "author": "RHB Banking Group",
   "license": "MIT",
   "peerDependencies": {
-    "react": ">=16.8.0",
-    "react-native": ">=0.60.0",
+    "react": ">=18.0.0",
+    "react-native": ">=0.70.0",
     "@expo/vector-icons": ">=14.0.0",
     "expo-image-picker": ">=15.0.0",
     "expo-document-picker": ">=12.0.0",
@@ -40,5 +42,15 @@
   "bugs": {
     "url": "https://github.com/rhb-banking/rhb-chat-sdk/issues"
   },
-  "homepage": "https://github.com/rhb-banking/rhb-chat-sdk#readme"
+  "homepage": "https://github.com/rhb-banking/rhb-chat-sdk#readme",
+  "files": [
+    "lib/",
+    "assets/",
+    "scripts/",
+    "INSTALLATION.md",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
 }
