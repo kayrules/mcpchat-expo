@@ -12,7 +12,7 @@ import Markdown from 'react-native-markdown-display';
 const rhbLogo = require('../../assets/rhblogo.png');
 const defaultPrompts = [
     {
-        title: 'What can RHB.ai do?',
+        title: 'How can you help me?',
         description: 'Smart help at your service'
     },
     {

@@ -20,7 +20,7 @@
 		13B07F961A680F5B00A75B9A /* umdagent.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = umdagent.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = umdagent/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = umdagent/Info.plist; sourceTree = "<group>"; };
-		25296396E67D454F58B9D718 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = umdagent/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		25296396E67D454F58B9D718 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xml; name = PrivacyInfo.xcprivacy; path = umdagent/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		7BE06898BEE0657A540135F4 /* Pods-umdagent.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-umdagent.debug.xcconfig"; path = "Target Support Files/Pods-umdagent/Pods-umdagent.debug.xcconfig"; sourceTree = "<group>"; };
 		954196A033C8FBA89E48AE79 /* libPods-umdagent.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-umdagent.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		95C816DAAF3861CF273C8A7E /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-umdagent/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
@@ -128,7 +128,6 @@
 				7BE06898BEE0657A540135F4 /* Pods-umdagent.debug.xcconfig */,
 				FE5D04584C95404B8000CA40 /* Pods-umdagent.release.xcconfig */,
 			);
-			name = Pods;
 			path = Pods;
 			sourceTree = "<group>";
 		};
@@ -379,7 +378,7 @@
 					"-lc++",
 				);
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_DEBUG";
-				PRODUCT_BUNDLE_IDENTIFIER = com.anonymous.umdagent;
+				PRODUCT_BUNDLE_IDENTIFIER = com.rhbgroup.umdagent;
 				PRODUCT_NAME = umdagent;
 				SWIFT_OBJC_BRIDGING_HEADER = "umdagent/umdagent-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
@@ -411,7 +410,7 @@
 					"-lc++",
 				);
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_RELEASE";
-				PRODUCT_BUNDLE_IDENTIFIER = com.anonymous.umdagent;
+				PRODUCT_BUNDLE_IDENTIFIER = com.rhbgroup.umdagent;
 				PRODUCT_NAME = umdagent;
 				SWIFT_OBJC_BRIDGING_HEADER = "umdagent/umdagent-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
@@ -475,10 +474,7 @@
 				LIBRARY_SEARCH_PATHS = "$(SDKROOT)/usr/lib/swift\"$(inherited)\"";
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
-				OTHER_LDFLAGS = (
-					"$(inherited)",
-					" ",
-				);
+				OTHER_LDFLAGS = "$(inherited)  ";
 				REACT_NATIVE_PATH = "${PODS_ROOT}/../../node_modules/react-native";
 				SDKROOT = iphoneos;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) DEBUG";
@@ -533,10 +529,7 @@
 				);
 				LIBRARY_SEARCH_PATHS = "$(SDKROOT)/usr/lib/swift\"$(inherited)\"";
 				MTL_ENABLE_DEBUG_INFO = NO;
-				OTHER_LDFLAGS = (
-					"$(inherited)",
-					" ",
-				);
+				OTHER_LDFLAGS = "$(inherited)  ";
 				REACT_NATIVE_PATH = "${PODS_ROOT}/../../node_modules/react-native";
 				SDKROOT = iphoneos;
 				USE_HERMES = true;

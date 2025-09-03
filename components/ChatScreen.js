@@ -31,7 +31,7 @@ const ChatScreen = ({ onClose }) => {
 
   const suggestedPrompts = [
     {
-      title: 'What can RHB.ai do?',
+      title: 'How can you help me?',
       description: 'Smart help at your service'
     },
     {

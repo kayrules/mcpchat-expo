@@ -14,7 +14,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.umdagent",
+      "bundleIdentifier": "com.rhbgroup.umdagent",
       "appleTeamId": "2SP4M85Q5A",
       "deploymentTarget": "16.0"
     },
@@ -24,7 +24,7 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.anonymous.umdagent",
+      "package": "com.rhbgroup.umdagent",
       "permissions": [
         "android.permission.RECORD_AUDIO",
         "android.permission.READ_EXTERNAL_STORAGE",

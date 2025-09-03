@@ -13,6 +13,7 @@ import {
   Image,
   Keyboard,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -29,7 +30,7 @@ const rhbLogo = require('../../assets/rhblogo.png');
 
 const defaultPrompts: SuggestedPrompt[] = [
   {
-    title: 'What can RHB.ai do?',
+    title: 'How can you help me?',
     description: 'Smart help at your service'
   },
   {
@@ -62,6 +63,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ onClose, config = {} }) => {
   const [showImagePreview, setShowImagePreview] = useState(false);
   const [previewImageUri, setPreviewImageUri] = useState<string>('');
   const [isRecording, setIsRecording] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [sessionId] = useState(() => new WebhookService().generateSessionId());
   const scrollViewRef = useRef<ScrollView>(null);
   const textInputRef = useRef<TextInput>(null);
@@ -71,7 +73,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ onClose, config = {} }) => {
   const theme = config.theme || {};
 
   const sendMessage = async () => {
-    if (inputText.trim() === '') return;
+    if (inputText.trim() === '' || isLoading) return;
 
     const userMessage: ChatMessage = {
       id: Date.now(),
@@ -83,6 +85,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ onClose, config = {} }) => {
     setMessages(prev => [...prev, userMessage]);
     const messageText = inputText;
     setInputText('');
+    setIsLoading(true);
 
     try {
       // Use webhook service to send text message
@@ -104,6 +107,8 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ onClose, config = {} }) => {
         timestamp: new Date(),
       };
       setMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -253,6 +258,8 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ onClose, config = {} }) => {
       };
       
       setMessages(prev => [...prev, imageMessage]);
+      setShowImagePreview(false); // Close the preview modal
+      setIsLoading(true);
 
       try {
         // Send image to webhook service
@@ -280,6 +287,8 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ onClose, config = {} }) => {
           timestamp: new Date(),
         };
         setMessages(prev => [...prev, errorMessage]);
+      } finally {
+        setIsLoading(false);
       }
     } catch (error) {
       console.error('Image handling failed:', error);
@@ -378,6 +387,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ onClose, config = {} }) => {
     // Send file to webhook service if URI is provided
     if (uri && (type === 'file' || type === 'image')) {
       console.log('📤 addMediaMessage: Sending to webhook service');
+      setIsLoading(true);
       try {
         const aiResponse = await webhookService.sendFileMessage(uri, sessionId);
         const aiMessage: ChatMessage = {
@@ -397,6 +407,8 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ onClose, config = {} }) => {
           timestamp: new Date(),
         };
         setMessages(prev => [...prev, errorMessage]);
+      } finally {
+        setIsLoading(false);
       }
     } else {
       // For audio or when no URI, provide basic response
@@ -568,6 +580,15 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ onClose, config = {} }) => {
     </View>
   );
 
+  const renderLoadingIndicator = () => (
+    <View style={[styles.messageContainer, styles.aiMessage]}>
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="small" color="#0066CC" />
+        <Text style={[styles.messageText, styles.loadingText]}>RHB.ai is typing...</Text>
+      </View>
+    </View>
+  );
+
   return (
     <SafeAreaView style={[styles.container, theme.backgroundColor && { backgroundColor: theme.backgroundColor }]}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
@@ -600,6 +621,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ onClose, config = {} }) => {
           onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
         >
           {messages.map(renderMessage)}
+          {isLoading && renderLoadingIndicator()}
         </ScrollView>
 
         {/* Suggested Prompts Slider - Show only when no conversation and input is empty */}
@@ -652,11 +674,15 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ onClose, config = {} }) => {
                 )}
                 
                 <TouchableOpacity 
-                  style={[styles.sendButton, inputText.trim() ? styles.sendButtonActive : null]}
+                  style={[styles.sendButton, inputText.trim() && !isLoading ? styles.sendButtonActive : null]}
                   onPress={sendMessage}
-                  disabled={!inputText.trim()}
+                  disabled={!inputText.trim() || isLoading}
                 >
-                  <MaterialIcons name="send" size={20} color={inputText.trim() ? "#FFFFFF" : "#666666"} />
+                  {isLoading ? (
+                    <ActivityIndicator size={20} color="#666666" />
+                  ) : (
+                    <MaterialIcons name="send" size={20} color={inputText.trim() && !isLoading ? "#FFFFFF" : "#666666"} />
+                  )}
                 </TouchableOpacity>
               </View>
             </View>
@@ -892,6 +918,16 @@ const styles = StyleSheet.create({
   fileName: {
     fontSize: 14,
     fontWeight: '500',
+  },
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  loadingText: {
+    fontSize: 14,
+    color: '#666666',
+    fontStyle: 'italic',
   },
 });
 

@@ -1,4 +1,4 @@
-package com.anonymous.umdagent
+package com.rhbgroup.umdagent
 
 import android.os.Build
 import android.os.Bundle
