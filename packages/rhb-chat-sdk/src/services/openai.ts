@@ -1,4 +1,29 @@
-import { OCRResult } from '../utils/ocr';
+// OCR types moved inline since ocr.ts was backed up
+export interface OCRResult {
+  text: string;
+  confidence?: number;
+  language?: string;
+  documentType?: 'receipt' | 'bill' | 'bank_statement' | 'invoice' | 'id_card' | 'credit_card' | 'unknown';
+  extractedData?: {
+    amounts?: string[];
+    dates?: string[];
+    phoneNumbers?: string[];
+    emails?: string[];
+    accountNumbers?: string[];
+    merchantName?: string;
+    total?: string;
+  };
+  blocks?: Array<{
+    text: string;
+    confidence: number;
+    frame: {
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+    };
+  }>;
+}
 
 export type BankingUserIntent = 
   // Bill Payment

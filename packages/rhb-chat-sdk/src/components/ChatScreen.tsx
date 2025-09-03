@@ -19,10 +19,11 @@ import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import { AudioRecorder, AudioPlayer } from 'expo-audio';
 import * as MediaLibrary from 'expo-media-library';
+import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import { ChatScreenProps, ChatMessage, SuggestedPrompt } from '../types';
-import { extractTextFromImage, isOCRAvailable } from '../utils/ocr';
 import ImagePreviewModal from './ImagePreviewModal';
-import OpenAIService, { OpenAIAnalysisResult } from '../services/openai';
+import WebhookService from '../services/webhook';
+import Markdown from 'react-native-markdown-display';
 
 const rhbLogo = require('../../assets/rhblogo.png');
 
@@ -61,8 +62,10 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ onClose, config = {} }) => {
   const [showImagePreview, setShowImagePreview] = useState(false);
   const [previewImageUri, setPreviewImageUri] = useState<string>('');
   const [isRecording, setIsRecording] = useState(false);
+  const [sessionId] = useState(() => new WebhookService().generateSessionId());
   const scrollViewRef = useRef<ScrollView>(null);
   const textInputRef = useRef<TextInput>(null);
+  const webhookService = new WebhookService();
 
   const suggestedPrompts = config.suggestedPrompts || defaultPrompts;
   const theme = config.theme || {};
@@ -78,33 +81,29 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ onClose, config = {} }) => {
     };
 
     setMessages(prev => [...prev, userMessage]);
+    const messageText = inputText;
     setInputText('');
 
-    // Use custom message handler if provided
-    if (config.onMessageSend) {
-      try {
-        const aiResponse = await config.onMessageSend(inputText);
-        const aiMessage: ChatMessage = {
-          id: Date.now() + 1,
-          text: aiResponse,
-          sender: 'ai',
-          timestamp: new Date(),
-        };
-        setMessages(prev => [...prev, aiMessage]);
-      } catch (error) {
-        console.error('Error sending message:', error);
-      }
-    } else {
-      // Default AI response
-      setTimeout(() => {
-        const aiMessage: ChatMessage = {
-          id: Date.now() + 1,
-          text: "I'm a demo AI assistant. I can help you with various tasks like creating content, analyzing data, and providing information.",
-          sender: 'ai',
-          timestamp: new Date(),
-        };
-        setMessages(prev => [...prev, aiMessage]);
-      }, 1000);
+    try {
+      // Use webhook service to send text message
+      const aiResponse = await webhookService.sendTextMessage(messageText, sessionId);
+      const aiMessage: ChatMessage = {
+        id: Date.now() + 1,
+        text: aiResponse,
+        sender: 'ai',
+        timestamp: new Date(),
+      };
+      setMessages(prev => [...prev, aiMessage]);
+    } catch (error) {
+      console.error('Error sending message:', error);
+      // Fallback error message
+      const errorMessage: ChatMessage = {
+        id: Date.now() + 1,
+        text: 'Sorry, I encountered an error processing your message. Please try again.',
+        sender: 'ai',
+        timestamp: new Date(),
+      };
+      setMessages(prev => [...prev, errorMessage]);
     }
   };
 
@@ -150,14 +149,51 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ onClose, config = {} }) => {
         allowsEditing: true,
         aspect: [4, 3],
         quality: 0.8,
+        allowsMultipleSelection: false,
+        selectionLimit: 1,
+        // Add resize options to reduce file size while maintaining quality
+        exif: false, // Remove EXIF data to reduce size
       });
 
       if (!result.canceled && result.assets[0]) {
         const asset = result.assets[0];
-        // Show preview modal instead of immediately adding to chat
-        setPreviewImageUri(asset.uri);
-        setShowImagePreview(true);
-        setShowBottomSheet(false); // Close bottom sheet
+        console.log('📷 Camera asset (original):', {
+          uri: asset.uri,
+          type: asset.type,
+          fileName: asset.fileName,
+          fileSize: asset.fileSize,
+        });
+        
+        // Resize image to reduce file size while maintaining quality
+        try {
+          const resizedImage = await manipulateAsync(
+            asset.uri,
+            [
+              { resize: { width: 1024 } }, // Resize to max width of 1024px (maintains aspect ratio)
+            ],
+            {
+              compress: 0.8, // 80% quality
+              format: SaveFormat.JPEG,
+            }
+          );
+          
+          console.log('📷 Camera asset (resized):', {
+            uri: resizedImage.uri,
+            width: resizedImage.width,
+            height: resizedImage.height,
+          });
+          
+          // Show preview modal with resized image
+          setPreviewImageUri(resizedImage.uri);
+          setShowImagePreview(true);
+          setShowBottomSheet(false); // Close bottom sheet
+        } catch (resizeError) {
+          console.error('Failed to resize image:', resizeError);
+          // Fallback to original image if resize fails
+          setPreviewImageUri(asset.uri);
+          setShowImagePreview(true);
+          setShowBottomSheet(false);
+        }
       }
     } catch (error) {
       console.error('Camera error:', error);
@@ -183,6 +219,12 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ onClose, config = {} }) => {
 
       if (!result.canceled && result.assets[0]) {
         const asset = result.assets[0];
+        console.log('🖼️ Gallery asset:', {
+          uri: asset.uri,
+          type: asset.type,
+          fileName: asset.fileName,
+          fileSize: asset.fileSize,
+        });
         // Show preview modal instead of immediately adding to chat
         setPreviewImageUri(asset.uri);
         setShowImagePreview(true);
@@ -196,95 +238,51 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ onClose, config = {} }) => {
 
   const handleImageWithContext = async (imageUri: string, context: string) => {
     try {
-      console.log('📷 Processing image with user context:', context);
+      console.log('🚀 handleImageWithContext called with:', { imageUri, context });
+      console.log('📷 Processing image with webhook:', context);
       
-      // Process OCR on the image
-      const ocrResult = await extractTextFromImage(imageUri);
-      console.log('✅ OCR processing completed');
-      
-      // Create message with OCR data and user context
-      const messageWithOCR: ChatMessage = {
+      // Create message with image and context
+      const imageMessage: ChatMessage = {
         id: Date.now(),
         text: context || 'Image uploaded',
         sender: 'user',
         timestamp: new Date(),
         mediaType: 'image',
         mediaUri: imageUri,
-        ocrData: {
-          extractedText: ocrResult.text,
-          confidence: ocrResult.confidence,
-          blocks: ocrResult.blocks,
-          documentType: ocrResult.documentType,
-          extractedData: ocrResult.extractedData,
-        },
         userContext: context,
       };
       
-      setMessages(prev => [...prev, messageWithOCR]);
+      setMessages(prev => [...prev, imageMessage]);
 
-      // Use OpenAI analysis if API key is provided
-      if (config.openAiApiKey) {
-        try {
-          const openAI = new OpenAIService(config.openAiApiKey);
-          const analysis = await openAI.analyzeImageWithContext(imageUri, ocrResult, context);
-          
-          // Format the analysis for user display
-          const formattedResponse = openAI.formatAnalysisForUser(analysis, context);
-          
-          const aiMessage: ChatMessage = {
-            id: Date.now() + 1,
-            text: formattedResponse,
-            sender: 'ai',
-            timestamp: new Date(),
-            metadata: {
-              openAiAnalysis: analysis, // Store the structured analysis
-              processingType: 'openai_vision'
-            }
-          };
-          
-          setMessages(prev => [...prev, aiMessage]);
-          
-        } catch (error) {
-          console.error('OpenAI analysis failed:', error);
-          // Fallback to basic analysis
-          const fallbackMessage: ChatMessage = {
-            id: Date.now() + 1,
-            text: `I can see you've shared an image asking: "${context}"\n\nFrom the OCR analysis:\n• Document type: ${ocrResult.documentType}\n• Extracted text: ${ocrResult.text.substring(0, 200)}${ocrResult.text.length > 200 ? '...' : ''}\n\nNote: Advanced AI analysis is currently unavailable.`,
-            sender: 'ai',
-            timestamp: new Date(),
-          };
-          setMessages(prev => [...prev, fallbackMessage]);
-        }
-      } else {
-        // Use custom message handler if provided
-        if (config.onMessage) {
-          try {
-            const response = await config.onMessage(messageWithOCR);
-            const aiMessage: ChatMessage = {
-              id: Date.now() + 1,
-              text: response,
-              sender: 'ai',
-              timestamp: new Date(),
-            };
-            setMessages(prev => [...prev, aiMessage]);
-          } catch (error) {
-            console.error('Error processing message:', error);
+      try {
+        // Send image to webhook service
+        const aiResponse = await webhookService.sendFileMessage(imageUri, sessionId);
+        
+        const aiMessage: ChatMessage = {
+          id: Date.now() + 1,
+          text: aiResponse,
+          sender: 'ai',
+          timestamp: new Date(),
+          metadata: {
+            processingType: 'custom'
           }
-        } else {
-          // Basic OCR-only response
-          const basicResponse = `I can see you've shared an image asking: "${context}"\n\nFrom OCR analysis:\n• Document type: ${ocrResult.documentType}\n• Extracted text: ${ocrResult.text.substring(0, 200)}${ocrResult.text.length > 200 ? '...' : ''}`;
-          
-          const aiMessage: ChatMessage = {
-            id: Date.now() + 1,
-            text: basicResponse,
-            sender: 'ai',
-            timestamp: new Date(),
-          };
-          setMessages(prev => [...prev, aiMessage]);
-        }
+        };
+        
+        setMessages(prev => [...prev, aiMessage]);
+        
+      } catch (error) {
+        console.error('Webhook file processing failed:', error);
+        // Fallback error message
+        const errorMessage: ChatMessage = {
+          id: Date.now() + 1,
+          text: `I can see your image with the question: "${context}". However, I'm having trouble processing it right now. Please try again or ask me something else.`,
+          sender: 'ai',
+          timestamp: new Date(),
+        };
+        setMessages(prev => [...prev, errorMessage]);
       }
     } catch (error) {
-      console.error('Image processing failed:', error);
+      console.error('Image handling failed:', error);
       // Fallback to regular image message if everything fails
       const fallbackMessage: ChatMessage = {
         id: Date.now(),
@@ -364,6 +362,8 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ onClose, config = {} }) => {
   };
 
   const addMediaMessage = async (type: string, uri?: string, description?: string) => {
+    console.log('🔄 addMediaMessage called with:', { type, uri, description });
+    
     const mediaMessage: ChatMessage = {
       id: Date.now(),
       text: description || `${type} message`,
@@ -375,15 +375,31 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ onClose, config = {} }) => {
 
     setMessages(prev => [...prev, mediaMessage]);
 
-    // Use custom media handler if provided
-    if (config.onMediaUpload) {
+    // Send file to webhook service if URI is provided
+    if (uri && (type === 'file' || type === 'image')) {
+      console.log('📤 addMediaMessage: Sending to webhook service');
       try {
-        await config.onMediaUpload(type, uri || '', description || '');
+        const aiResponse = await webhookService.sendFileMessage(uri, sessionId);
+        const aiMessage: ChatMessage = {
+          id: Date.now() + 1,
+          text: aiResponse,
+          sender: 'ai',
+          timestamp: new Date(),
+        };
+        setMessages(prev => [...prev, aiMessage]);
       } catch (error) {
         console.error('Error handling media upload:', error);
+        // Fallback response
+        const errorMessage: ChatMessage = {
+          id: Date.now() + 1,
+          text: `I received your ${type} but had trouble processing it. Please try again.`,
+          sender: 'ai',
+          timestamp: new Date(),
+        };
+        setMessages(prev => [...prev, errorMessage]);
       }
     } else {
-      // Default AI response
+      // For audio or when no URI, provide basic response
       setTimeout(() => {
         const aiMessage: ChatMessage = {
           id: Date.now() + 1,
@@ -399,27 +415,40 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ onClose, config = {} }) => {
   const handleShortcut = (type: string) => {
     setShowBottomSheet(false);
     
-    // Refocus text input after closing bottom sheet
-    setTimeout(() => {
-      textInputRef.current?.focus();
-    }, 100);
+    // Dismiss keyboard first for media-related shortcuts
+    if (type === 'camera' || type === 'photos' || type === 'files') {
+      Keyboard.dismiss();
+    }
 
-    // Handle each shortcut type
-    switch (type) {
-      case 'camera':
-        handleCamera();
-        break;
-      case 'photos':
-        handlePhotos();
-        break;
-      case 'files':
-        handleFiles();
-        break;
-      case 'voice':
-        handleVoice();
-        break;
-      default:
-        console.log(`${type} selected`);
+    // Handle each shortcut type with slight delay for media options
+    if (type === 'camera' || type === 'photos' || type === 'files') {
+      setTimeout(() => {
+        switch (type) {
+          case 'camera':
+            handleCamera();
+            break;
+          case 'photos':
+            handlePhotos();
+            break;
+          case 'files':
+            handleFiles();
+            break;
+        }
+      }, 100);
+    } else {
+      // Handle non-media shortcuts immediately
+      switch (type) {
+        case 'voice':
+          handleVoice();
+          break;
+        default:
+          console.log(`${type} selected`);
+      }
+      
+      // Only refocus for non-media shortcuts
+      setTimeout(() => {
+        textInputRef.current?.focus();
+      }, 100);
     }
   };
 
@@ -489,11 +518,53 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ onClose, config = {} }) => {
           ]}>{message.text}</Text>
         </View>
       )}
-      <Text style={[
-        styles.messageText,
-        message.sender === 'user' ? styles.userMessageText : styles.aiMessageText,
-        theme.textColor && { color: theme.textColor }
-      ]}>{message.mediaType ? message.text : message.text}</Text>
+      {message.sender === 'ai' ? (
+        <Markdown
+          style={{
+            body: {
+              color: message.sender === 'user' ? '#FFFFFF' : '#333333',
+              fontSize: 16,
+              lineHeight: 20,
+              ...(theme.textColor && { color: theme.textColor })
+            },
+            strong: {
+              fontWeight: 'bold',
+              color: message.sender === 'user' ? '#FFFFFF' : '#333333'
+            },
+            em: {
+              fontStyle: 'italic'
+            },
+            bullet_list: {
+              marginVertical: 4
+            },
+            list_item: {
+              marginVertical: 2
+            },
+            code_inline: {
+              backgroundColor: '#F0F0F0',
+              borderRadius: 4,
+              paddingHorizontal: 4,
+              paddingVertical: 2,
+              fontFamily: 'monospace'
+            },
+            code_block: {
+              backgroundColor: '#F0F0F0',
+              borderRadius: 8,
+              padding: 12,
+              marginVertical: 8,
+              fontFamily: 'monospace'
+            }
+          }}
+        >
+          {message.text}
+        </Markdown>
+      ) : (
+        <Text style={[
+          styles.messageText,
+          message.sender === 'user' ? styles.userMessageText : styles.aiMessageText,
+          theme.textColor && { color: theme.textColor }
+        ]}>{message.text}</Text>
+      )}
     </View>
   );
 

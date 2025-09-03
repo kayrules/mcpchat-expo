@@ -47,6 +47,10 @@ PODS:
     - ExpoModulesCore
   - ExpoFont (13.3.2):
     - ExpoModulesCore
+  - ExpoImageManipulator (13.1.7):
+    - EXImageLoader
+    - ExpoModulesCore
+    - SDWebImageWebPCoder
   - ExpoImagePicker (16.1.4):
     - ExpoModulesCore
   - ExpoKeepAwake (14.1.4):
@@ -121,6 +125,18 @@ PODS:
   - hermes-engine (0.79.6):
     - hermes-engine/Pre-built (= 0.79.6)
   - hermes-engine/Pre-built (0.79.6)
+  - libwebp (1.5.0):
+    - libwebp/demux (= 1.5.0)
+    - libwebp/mux (= 1.5.0)
+    - libwebp/sharpyuv (= 1.5.0)
+    - libwebp/webp (= 1.5.0)
+  - libwebp/demux (1.5.0):
+    - libwebp/webp
+  - libwebp/mux (1.5.0):
+    - libwebp/demux
+  - libwebp/sharpyuv (1.5.0)
+  - libwebp/webp (1.5.0):
+    - libwebp/sharpyuv
   - MLImage (1.0.0-beta7)
   - MLKitCommon (13.0.0):
     - GoogleDataTransport (~> 10.0)
@@ -1894,7 +1910,7 @@ PODS:
     - GoogleMLKit/TextRecognitionJapanese (= 8.0.0)
     - GoogleMLKit/TextRecognitionKorean (= 8.0.0)
     - React
-  - RNScreens (4.15.4):
+  - RNScreens (4.15.3):
     - DoubleConversion
     - glog
     - hermes-engine
@@ -1918,9 +1934,9 @@ PODS:
     - ReactCodegen
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
-    - RNScreens/common (= 4.15.4)
+    - RNScreens/common (= 4.15.3)
     - Yoga
-  - RNScreens/common (4.15.4):
+  - RNScreens/common (4.15.3):
     - DoubleConversion
     - glog
     - hermes-engine
@@ -1945,6 +1961,10 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - Yoga
+  - SDWebImage/Core (5.21.2)
+  - SDWebImageWebPCoder (0.14.6):
+    - libwebp (~> 1.0)
+    - SDWebImage/Core (~> 5.17)
   - SocketRocket (0.7.1)
   - Yoga (0.0.0)
   - ZXingObjC/Core (3.6.9)
@@ -1965,6 +1985,7 @@ DEPENDENCIES:
   - ExpoDocumentPicker (from `../node_modules/expo-document-picker/ios`)
   - ExpoFileSystem (from `../node_modules/expo-file-system/ios`)
   - ExpoFont (from `../node_modules/expo-font/ios`)
+  - ExpoImageManipulator (from `../node_modules/expo-image-manipulator/ios`)
   - ExpoImagePicker (from `../node_modules/expo-image-picker/ios`)
   - ExpoKeepAwake (from `../node_modules/expo-keep-awake/ios`)
   - ExpoMediaLibrary (from `../node_modules/expo-media-library/ios`)
@@ -2051,6 +2072,7 @@ SPEC REPOS:
     - GoogleToolboxForMac
     - GoogleUtilities
     - GTMSessionFetcher
+    - libwebp
     - MLImage
     - MLKitCommon
     - MLKitTextRecognition
@@ -2062,6 +2084,8 @@ SPEC REPOS:
     - MLKitVision
     - nanopb
     - PromisesObjC
+    - SDWebImage
+    - SDWebImageWebPCoder
     - SocketRocket
     - ZXingObjC
 
@@ -2088,6 +2112,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/expo-file-system/ios"
   ExpoFont:
     :path: "../node_modules/expo-font/ios"
+  ExpoImageManipulator:
+    :path: "../node_modules/expo-image-manipulator/ios"
   ExpoImagePicker:
     :path: "../node_modules/expo-image-picker/ios"
   ExpoKeepAwake:
@@ -2254,6 +2280,7 @@ SPEC CHECKSUMS:
   ExpoDocumentPicker: b263a279685b6640b8c8bc70d71c83067aeaae55
   ExpoFileSystem: 7f92f7be2f5c5ed40a7c9efc8fa30821181d9d63
   ExpoFont: cf508bc2e6b70871e05386d71cab927c8524cc8e
+  ExpoImageManipulator: 1e06e7a1e56f454e75d01b7032c1e44963bfc865
   ExpoImagePicker: 0963da31800c906e01c03e25d7c849f16ebf02a2
   ExpoKeepAwake: bf0811570c8da182bfb879169437d4de298376e7
   ExpoMediaLibrary: 0daf5e811e00daa47690f5da2989e71ff7de56e0
@@ -2268,6 +2295,7 @@ SPEC CHECKSUMS:
   GoogleUtilities: 00c88b9a86066ef77f0da2fab05f65d7768ed8e1
   GTMSessionFetcher: 5aea5ba6bd522a239e236100971f10cb71b96ab6
   hermes-engine: 44bb6fe76a6eb400d3a992e2d0b21946ae999fa9
+  libwebp: 02b23773aedb6ff1fd38cec7a77b81414c6842a8
   MLImage: 2ab9c968e75f57911c16f4c9d9e8a8e9604a86a1
   MLKitCommon: 26b779f072a182c1603d4c88a101c350cac837b1
   MLKitTextRecognition: 072488cfd29f1726733378661881f88db74ba3dc
@@ -2344,7 +2372,9 @@ SPEC CHECKSUMS:
   ReactCommon: 44c86ec3ace664c0f33b7a2ac89aced8304ef25e
   RNCMaskedView: 4c5ee1c8667d56077246cc6d1977f77393923560
   RNMLKitTextRecognition: 2d7c3481b9dabc72f7e31c67025c28b2c8d653b0
-  RNScreens: f0678748c5310b49a3f920f1485f5ec477afd345
+  RNScreens: d60719d9d279495018933bf47a3dff51c4b6ea2c
+  SDWebImage: 9f177d83116802728e122410fb25ad88f5c7608a
+  SDWebImageWebPCoder: e38c0a70396191361d60c092933e22c20d5b1380
   SocketRocket: d4aabe649be1e368d1318fdf28a022d714d65748
   Yoga: dc7c21200195acacb62fa920c588e7c2106de45e
   ZXingObjC: 8898711ab495761b2dbbdec76d90164a6d7e14c5

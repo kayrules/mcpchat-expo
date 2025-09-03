@@ -62,6 +62,11 @@
           "microphonePermission": "Allow $(PRODUCT_NAME) to access your microphone for voice messages."
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "19d7cb86-fcab-4736-847b-0d5588c4a380"
+      }
+    }
   }
 }

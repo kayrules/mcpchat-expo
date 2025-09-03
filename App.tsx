@@ -89,8 +89,8 @@ export default function App() {
         description: 'Quick spend overview'
       },
       {
-        title: 'Show investment picks',
-        description: 'Plans made for you'
+        title: 'Show investment options',
+        description: 'Investment Plans for you'
       },
     ]
   };

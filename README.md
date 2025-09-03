@@ -25,6 +25,7 @@ umd-agent/
 ## Features Demonstrated
 
 ### 🚀 SDK Integration
+
 - How to import and configure the RHB Chat SDK
 - Custom message handlers for backend integration
 - Custom media upload handlers
@@ -32,8 +33,9 @@ umd-agent/
 - Custom suggested prompts
 
 ### 💬 Chat Features
+
 - **Real-time Messaging**: Interactive chat interface
-- **Rich Media Support**: 
+- **Rich Media Support**:
   - 📷 Camera capture
   - 🖼️ Photo library selection
   - 📁 File attachments
@@ -42,6 +44,7 @@ umd-agent/
 - **Responsive Design**: Works on all screen sizes
 
 ### 🎨 Customization
+
 - **Theming**: Custom colors and styling
 - **Branding**: Logo integration (when available)
 - **Prompts**: Banking-specific suggested actions
@@ -58,12 +61,14 @@ umd-agent/
 ### Installation
 
 1. **Clone and install dependencies:**
+
    ```bash
    cd umd-agent
    bun install
    ```
 
 2. **Build the SDK (optional for development):**
+
    ```bash
    cd packages/rhb-chat-sdk
    bun run build
@@ -80,7 +85,11 @@ umd-agent/
 The demo app shows how to integrate the SDK in your own application:
 
 ```tsx
-import { ChatScreen, FloatingChatButton, ChatConfig } from './packages/rhb-chat-sdk/src';
+import {
+  ChatScreen,
+  FloatingChatButton,
+  ChatConfig,
+} from "./packages/rhb-chat-sdk/src";
 
 // Custom configuration
 const chatConfig: ChatConfig = {
@@ -93,13 +102,13 @@ const chatConfig: ChatConfig = {
     await uploadMediaToAPI(type, uri, description);
   },
   theme: {
-    primaryColor: '#007AFF',
-    userBubbleColor: '#007AFF',
-  }
+    primaryColor: "#007AFF",
+    userBubbleColor: "#007AFF",
+  },
 };
 
 // Usage in component
-<ChatScreen onClose={closeChat} config={chatConfig} />
+<ChatScreen onClose={closeChat} config={chatConfig} />;
 ```
 
 ## Available Scripts
@@ -114,16 +123,19 @@ const chatConfig: ChatConfig = {
 To work on the SDK itself:
 
 1. **Navigate to SDK directory:**
+
    ```bash
    cd packages/rhb-chat-sdk
    ```
 
 2. **Install dependencies:**
+
    ```bash
    bun install
    ```
 
 3. **Watch for changes:**
+
    ```bash
    bun run watch
    ```
@@ -138,26 +150,32 @@ To work on the SDK itself:
 The demo app includes examples of how to integrate with your backend:
 
 ### Message Handling
+
 ```tsx
 const handleMessageSend = async (message: string): Promise<string> => {
-  const response = await fetch('/api/chat', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ message })
+  const response = await fetch("/api/chat", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ message }),
   });
   return response.json();
 };
 ```
 
 ### Media Upload
+
 ```tsx
-const handleMediaUpload = async (type: string, uri: string, description: string) => {
+const handleMediaUpload = async (
+  type: string,
+  uri: string,
+  description: string
+) => {
   const formData = new FormData();
-  formData.append('file', { uri, type, name: description });
-  
-  await fetch('/api/upload', {
-    method: 'POST',
-    body: formData
+  formData.append("file", { uri, type, name: description });
+
+  await fetch("/api/upload", {
+    method: "POST",
+    body: formData,
   });
 };
 ```
@@ -167,11 +185,13 @@ const handleMediaUpload = async (type: string, uri: string, description: string)
 The app requires the following permissions:
 
 ### iOS
+
 - Camera usage
 - Photo library access
 - Microphone access
 
 ### Android
+
 - Camera permission
 - External storage read
 - Audio recording
@@ -216,8 +236,9 @@ To use the SDK in production:
 ### Debug Mode
 
 Enable debug mode in the demo app to see console logs for:
+
 - Message sending
-- Media uploads  
+- Media uploads
 - SDK lifecycle events
 
 ## Architecture
@@ -236,3 +257,7 @@ MIT License - see LICENSE file for details.
 ---
 
 **Happy coding!** 🚀
+
+```
+eas build --platform ios --profile preview
+```

@@ -36,7 +36,7 @@
     "expo-document-picker": ">=12.0.0",
     "expo-audio": ">=0.4.0",
     "expo-media-library": ">=17.0.0",
-    "@react-native-ml-kit/text-recognition": ">=2.0.0"
+    "expo-image-manipulator": ">=12.0.0"
   },
   "devDependencies": {
     "@types/react": "^18.0.0",
