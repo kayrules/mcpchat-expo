@@ -5,6 +5,37 @@ export interface ChatMessage {
   timestamp: Date;
   mediaType?: 'image' | 'file' | 'audio';
   mediaUri?: string;
+  userContext?: string; // User's context/question about the image
+  metadata?: {
+    openAiAnalysis?: any; // Store structured OpenAI analysis
+    processingType?: 'ocr_only' | 'openai_vision' | 'custom';
+    [key: string]: any;
+  };
+  ocrData?: {
+    extractedText: string;
+    confidence?: number;
+    language?: string;
+    documentType?: 'receipt' | 'bill' | 'bank_statement' | 'invoice' | 'id_card' | 'credit_card' | 'unknown';
+    extractedData?: {
+      amounts?: string[];
+      dates?: string[];
+      phoneNumbers?: string[];
+      emails?: string[];
+      accountNumbers?: string[];
+      merchantName?: string;
+      total?: string;
+    };
+    blocks?: Array<{
+      text: string;
+      confidence: number;
+      frame: {
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+      };
+    }>;
+  };
 }
 
 export interface SuggestedPrompt {
@@ -15,8 +46,10 @@ export interface SuggestedPrompt {
 export interface ChatConfig {
   logoSource?: any;
   suggestedPrompts?: SuggestedPrompt[];
+  onMessage?: (message: ChatMessage) => Promise<string>; // Updated to receive ChatMessage
   onMessageSend?: (message: string) => Promise<string>;
   onMediaUpload?: (type: string, uri: string, description: string) => Promise<void>;
+  openAiApiKey?: string; // Add OpenAI API key configuration
   theme?: {
     primaryColor?: string;
     backgroundColor?: string;

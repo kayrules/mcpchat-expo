@@ -15,7 +15,8 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.anonymous.umdagent",
-      "appleTeamId": "2SP4M85Q5A"
+      "appleTeamId": "2SP4M85Q5A",
+      "deploymentTarget": "16.0"
     },
     "android": {
       "adaptiveIcon": {

@@ -20,6 +20,9 @@ import * as DocumentPicker from 'expo-document-picker';
 import { AudioRecorder, AudioPlayer } from 'expo-audio';
 import * as MediaLibrary from 'expo-media-library';
 import { ChatScreenProps, ChatMessage, SuggestedPrompt } from '../types';
+import { extractTextFromImage, isOCRAvailable } from '../utils/ocr';
+import ImagePreviewModal from './ImagePreviewModal';
+import OpenAIService, { OpenAIAnalysisResult } from '../services/openai';
 
 const rhbLogo = require('../../assets/rhblogo.png');
 
@@ -55,6 +58,8 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ onClose, config = {} }) => {
   const [inputText, setInputText] = useState('');
   const [showBottomSheet, setShowBottomSheet] = useState(false);
   const [audioRecorder, setAudioRecorder] = useState<AudioRecorder | null>(null);
+  const [showImagePreview, setShowImagePreview] = useState(false);
+  const [previewImageUri, setPreviewImageUri] = useState<string>('');
   const [isRecording, setIsRecording] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
   const textInputRef = useRef<TextInput>(null);
@@ -149,7 +154,10 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ onClose, config = {} }) => {
 
       if (!result.canceled && result.assets[0]) {
         const asset = result.assets[0];
-        addMediaMessage('image', asset.uri, 'Photo taken');
+        // Show preview modal instead of immediately adding to chat
+        setPreviewImageUri(asset.uri);
+        setShowImagePreview(true);
+        setShowBottomSheet(false); // Close bottom sheet
       }
     } catch (error) {
       console.error('Camera error:', error);
@@ -175,11 +183,128 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ onClose, config = {} }) => {
 
       if (!result.canceled && result.assets[0]) {
         const asset = result.assets[0];
-        addMediaMessage('image', asset.uri, 'Photo selected');
+        // Show preview modal instead of immediately adding to chat
+        setPreviewImageUri(asset.uri);
+        setShowImagePreview(true);
+        setShowBottomSheet(false); // Close bottom sheet
       }
     } catch (error) {
       console.error('Photo picker error:', error);
       Alert.alert('Error', 'Failed to select photo');
+    }
+  };
+
+  const handleImageWithContext = async (imageUri: string, context: string) => {
+    try {
+      console.log('📷 Processing image with user context:', context);
+      
+      // Process OCR on the image
+      const ocrResult = await extractTextFromImage(imageUri);
+      console.log('✅ OCR processing completed');
+      
+      // Create message with OCR data and user context
+      const messageWithOCR: ChatMessage = {
+        id: Date.now(),
+        text: context || 'Image uploaded',
+        sender: 'user',
+        timestamp: new Date(),
+        mediaType: 'image',
+        mediaUri: imageUri,
+        ocrData: {
+          extractedText: ocrResult.text,
+          confidence: ocrResult.confidence,
+          blocks: ocrResult.blocks,
+          documentType: ocrResult.documentType,
+          extractedData: ocrResult.extractedData,
+        },
+        userContext: context,
+      };
+      
+      setMessages(prev => [...prev, messageWithOCR]);
+
+      // Use OpenAI analysis if API key is provided
+      if (config.openAiApiKey) {
+        try {
+          const openAI = new OpenAIService(config.openAiApiKey);
+          const analysis = await openAI.analyzeImageWithContext(imageUri, ocrResult, context);
+          
+          // Format the analysis for user display
+          const formattedResponse = openAI.formatAnalysisForUser(analysis, context);
+          
+          const aiMessage: ChatMessage = {
+            id: Date.now() + 1,
+            text: formattedResponse,
+            sender: 'ai',
+            timestamp: new Date(),
+            metadata: {
+              openAiAnalysis: analysis, // Store the structured analysis
+              processingType: 'openai_vision'
+            }
+          };
+          
+          setMessages(prev => [...prev, aiMessage]);
+          
+        } catch (error) {
+          console.error('OpenAI analysis failed:', error);
+          // Fallback to basic analysis
+          const fallbackMessage: ChatMessage = {
+            id: Date.now() + 1,
+            text: `I can see you've shared an image asking: "${context}"\n\nFrom the OCR analysis:\n• Document type: ${ocrResult.documentType}\n• Extracted text: ${ocrResult.text.substring(0, 200)}${ocrResult.text.length > 200 ? '...' : ''}\n\nNote: Advanced AI analysis is currently unavailable.`,
+            sender: 'ai',
+            timestamp: new Date(),
+          };
+          setMessages(prev => [...prev, fallbackMessage]);
+        }
+      } else {
+        // Use custom message handler if provided
+        if (config.onMessage) {
+          try {
+            const response = await config.onMessage(messageWithOCR);
+            const aiMessage: ChatMessage = {
+              id: Date.now() + 1,
+              text: response,
+              sender: 'ai',
+              timestamp: new Date(),
+            };
+            setMessages(prev => [...prev, aiMessage]);
+          } catch (error) {
+            console.error('Error processing message:', error);
+          }
+        } else {
+          // Basic OCR-only response
+          const basicResponse = `I can see you've shared an image asking: "${context}"\n\nFrom OCR analysis:\n• Document type: ${ocrResult.documentType}\n• Extracted text: ${ocrResult.text.substring(0, 200)}${ocrResult.text.length > 200 ? '...' : ''}`;
+          
+          const aiMessage: ChatMessage = {
+            id: Date.now() + 1,
+            text: basicResponse,
+            sender: 'ai',
+            timestamp: new Date(),
+          };
+          setMessages(prev => [...prev, aiMessage]);
+        }
+      }
+    } catch (error) {
+      console.error('Image processing failed:', error);
+      // Fallback to regular image message if everything fails
+      const fallbackMessage: ChatMessage = {
+        id: Date.now(),
+        text: context || 'Image uploaded',
+        sender: 'user',
+        timestamp: new Date(),
+        mediaType: 'image',
+        mediaUri: imageUri,
+        userContext: context,
+      };
+      setMessages(prev => [...prev, fallbackMessage]);
+      
+      // Show error message
+      const errorMessage: ChatMessage = {
+        id: Date.now() + 1,
+        text: 'Sorry, I encountered an error while processing your image. Please try again.',
+        sender: 'ai',
+        timestamp: new Date(),
+      };
+      setMessages(prev => [...prev, errorMessage]);
     }
   };
 
@@ -469,6 +594,14 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ onClose, config = {} }) => {
         
         {renderBottomSheet()}
       </KeyboardAvoidingView>
+
+      {/* Image Preview Modal */}
+      <ImagePreviewModal
+        visible={showImagePreview}
+        imageUri={previewImageUri}
+        onClose={() => setShowImagePreview(false)}
+        onSend={handleImageWithContext}
+      />
     </SafeAreaView>
   );
 };

@@ -35,8 +35,33 @@ export default function App() {
   // SDK Configuration
   const chatConfig: ChatConfig = {
     // logoSource: require('./assets/rhblogo.png'), // Uncomment when logo is available
+    openAiApiKey: process.env.EXPO_PUBLIC_OPENAI_API_KEY, // Add your OpenAI API key for intelligent document analysis
     onMessageSend: handleMessageSend,
     onMediaUpload: handleMediaUpload,
+    onMessage: async (message) => {
+      // Enhanced message handler for OpenAI analysis results
+      if (message.metadata?.openAiAnalysis) {
+        console.log('📊 OpenAI Analysis received:', message.metadata.openAiAnalysis);
+        
+        // You can handle specific banking intents here
+        const analysis = message.metadata.openAiAnalysis;
+        if (analysis.billAnalysis) {
+          console.log('💰 Bill payment detected:', analysis.billAnalysis);
+          // Trigger bill payment flow in your app
+        }
+        if (analysis.phoneAnalysis) {
+          console.log('📱 Mobile topup detected:', analysis.phoneAnalysis);
+          // Trigger mobile topup flow in your app
+        }
+        if (analysis.bankAnalysis) {
+          console.log('🏦 Bank transfer detected:', analysis.bankAnalysis);
+          // Trigger bank transfer flow in your app
+        }
+      }
+      
+      // Default response or call your existing handler
+      return handleMessageSend(message.text);
+    },
     theme: {
       primaryColor: '#007AFF',
       userBubbleColor: '#007AFF',

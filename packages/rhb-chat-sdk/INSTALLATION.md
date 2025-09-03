@@ -31,7 +31,7 @@ This SDK requires the following permissions and dependencies to be configured by
 Install the peer dependencies:
 
 ```bash
-npm install @expo/vector-icons expo-image-picker expo-document-picker expo-audio expo-media-library
+npm install @expo/vector-icons expo-image-picker expo-document-picker expo-audio expo-media-library @react-native-ml-kit/text-recognition
 ```
 
 ## Expo Configuration
