@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View, Modal } from 'react-native';
-// Development import for hot reloading
+// Development import (will use built package when published)
 import { ChatScreen, FloatingChatButton, ChatConfig } from './packages/rhb-chat-sdk/src';
 
 // Sample integration showing how to use the SDK

@@ -12,11 +12,13 @@
     }
   },
   "scripts": {
-    "build": "tsc",
-    "watch": "tsc --watch", 
+    "build": "tsc --skipLibCheck",
+    "watch": "tsc --watch",
     "clean": "rm -rf lib",
     "prepublishOnly": "npm run clean && npm run build",
-    "postinstall": "node scripts/post-install.js || echo 'SDK setup complete'"
+    "postinstall": "node scripts/post-install.js || echo 'SDK setup complete'",
+    "android": "expo run:android",
+    "ios": "expo run:ios"
   },
   "keywords": [
     "react-native",
@@ -36,7 +38,8 @@
     "expo-document-picker": ">=12.0.0",
     "expo-audio": ">=0.4.0",
     "expo-media-library": ">=17.0.0",
-    "expo-image-manipulator": ">=12.0.0"
+    "expo-image-manipulator": ">=12.0.0",
+    "expo-speech-recognition": ">=2.0.0"
   },
   "devDependencies": {
     "@types/react": "^18.0.0",

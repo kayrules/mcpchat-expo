@@ -1,14 +1,14 @@
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
-import { useState, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, SafeAreaView, StatusBar, KeyboardAvoidingView, Platform, Image, Keyboard, Alert, } from 'react-native';
+import { useState, useRef, useEffect } from 'react';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, SafeAreaView, StatusBar, KeyboardAvoidingView, Platform, Image, Keyboard, Alert, ActivityIndicator, } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import { AudioRecorder } from 'expo-audio';
 import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
+import { ExpoSpeechRecognitionModule, useSpeechRecognitionEvent } from 'expo-speech-recognition';
 import ImagePreviewModal from './ImagePreviewModal';
 import WebhookService from '../services/webhook';
-import Markdown from 'react-native-markdown-display';
 const rhbLogo = require('../../assets/rhblogo.png');
 const defaultPrompts = [
     {
@@ -44,14 +44,73 @@ const ChatScreen = ({ onClose, config = {} }) => {
     const [showImagePreview, setShowImagePreview] = useState(false);
     const [previewImageUri, setPreviewImageUri] = useState('');
     const [isRecording, setIsRecording] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+    const [isListening, setIsListening] = useState(false);
+    const [speechPermissionGranted, setSpeechPermissionGranted] = useState(false);
     const [sessionId] = useState(() => new WebhookService().generateSessionId());
     const scrollViewRef = useRef(null);
     const textInputRef = useRef(null);
     const webhookService = new WebhookService();
     const suggestedPrompts = config.suggestedPrompts || defaultPrompts;
     const theme = config.theme || {};
+    // Speech Recognition Event Handlers
+    useSpeechRecognitionEvent('result', (event) => {
+        console.log('🎤 Speech result:', event.results);
+        if (event.results && event.results.length > 0) {
+            const transcript = event.results[0].transcript;
+            if (transcript) {
+                console.log('🎤 Transcript:', transcript);
+                setInputText(transcript);
+            }
+        }
+    });
+    useSpeechRecognitionEvent('end', () => {
+        console.log('🎤 Speech recognition ended');
+        setIsListening(false);
+    });
+    useSpeechRecognitionEvent('start', () => {
+        console.log('🎤 Speech recognition started');
+        setIsListening(true);
+    });
+    useSpeechRecognitionEvent('error', (event) => {
+        console.error('🎤 Speech recognition error:', event.error);
+        setIsListening(false);
+        let errorMessage = 'Voice input failed. Please try again.';
+        if (event.error === 'not-allowed') {
+            errorMessage = 'Microphone permission denied. Please enable microphone access in settings.';
+        }
+        else if (event.error === 'network') {
+            errorMessage = 'Network error during voice input. Please check your internet connection.';
+        }
+        else if (event.error === 'no-speech') {
+            errorMessage = 'No speech detected. Please try speaking again.';
+        }
+        Alert.alert('Voice Input Error', errorMessage);
+    });
+    // Initialize speech recognition on component mount
+    useEffect(() => {
+        const initializeSpeechRecognition = async () => {
+            try {
+                // Check if speech recognition is available
+                const isAvailable = await ExpoSpeechRecognitionModule.getAvailableAsync();
+                console.log('🎤 Speech recognition available:', isAvailable);
+                if (isAvailable) {
+                    // Check current permissions without requesting
+                    const permissions = await ExpoSpeechRecognitionModule.getPermissionsAsync();
+                    if (permissions.granted) {
+                        setSpeechPermissionGranted(true);
+                        console.log('🎤 Speech recognition permissions already granted');
+                    }
+                }
+            }
+            catch (error) {
+                console.error('🎤 Error initializing speech recognition:', error);
+            }
+        };
+        initializeSpeechRecognition();
+    }, []);
     const sendMessage = async () => {
-        if (inputText.trim() === '')
+        if (inputText.trim() === '' || isLoading)
             return;
         const userMessage = {
             id: Date.now(),
@@ -62,6 +121,7 @@ const ChatScreen = ({ onClose, config = {} }) => {
         setMessages(prev => [...prev, userMessage]);
         const messageText = inputText;
         setInputText('');
+        setIsLoading(true);
         try {
             // Use webhook service to send text message
             const aiResponse = await webhookService.sendTextMessage(messageText, sessionId);
@@ -83,6 +143,9 @@ const ChatScreen = ({ onClose, config = {} }) => {
                 timestamp: new Date(),
             };
             setMessages(prev => [...prev, errorMessage]);
+        }
+        finally {
+            setIsLoading(false);
         }
     };
     const selectPrompt = (prompt) => {
@@ -215,6 +278,8 @@ const ChatScreen = ({ onClose, config = {} }) => {
                 userContext: context,
             };
             setMessages(prev => [...prev, imageMessage]);
+            setShowImagePreview(false); // Close the preview modal
+            setIsLoading(true);
             try {
                 // Send image to webhook service
                 const aiResponse = await webhookService.sendFileMessage(imageUri, sessionId);
@@ -239,6 +304,9 @@ const ChatScreen = ({ onClose, config = {} }) => {
                     timestamp: new Date(),
                 };
                 setMessages(prev => [...prev, errorMessage]);
+            }
+            finally {
+                setIsLoading(false);
             }
         }
         catch (error) {
@@ -278,6 +346,76 @@ const ChatScreen = ({ onClose, config = {} }) => {
         catch (error) {
             console.error('File picker error:', error);
             Alert.alert('Error', 'Failed to pick file');
+        }
+    };
+    // Speech Recognition Setup and Functions
+    const requestSpeechPermissions = async () => {
+        try {
+            console.log('🎤 Requesting speech recognition permissions...');
+            const result = await ExpoSpeechRecognitionModule.requestPermissionsAsync();
+            console.log('🎤 Permission result:', result);
+            if (result.granted) {
+                setSpeechPermissionGranted(true);
+                console.log('✅ Speech recognition permissions granted');
+                return true;
+            }
+            else {
+                setSpeechPermissionGranted(false);
+                console.warn('❌ Speech recognition permissions denied');
+                Alert.alert('Microphone Permission Required', 'Voice input requires microphone access. Please enable microphone permissions in your device settings to use speech-to-text.', [
+                    { text: 'Cancel', style: 'cancel' },
+                    { text: 'Settings', onPress: () => {
+                            Alert.alert('Enable Microphone', 'Go to Settings > Privacy & Security > Microphone and enable access for this app.');
+                        } }
+                ]);
+                return false;
+            }
+        }
+        catch (error) {
+            console.error('🎤 Error requesting speech permissions:', error);
+            setSpeechPermissionGranted(false);
+            return false;
+        }
+    };
+    const startSpeechRecognition = async () => {
+        try {
+            if (!speechPermissionGranted) {
+                const granted = await requestSpeechPermissions();
+                if (!granted)
+                    return;
+            }
+            console.log('🎤 Starting speech recognition...');
+            setIsListening(true);
+            await ExpoSpeechRecognitionModule.start({
+                lang: 'en-US',
+                interimResults: true,
+                continuous: false,
+                maxAlternatives: 1,
+            });
+        }
+        catch (error) {
+            console.error('🎤 Failed to start speech recognition:', error);
+            setIsListening(false);
+            Alert.alert('Speech Recognition Error', 'Failed to start voice input. Please try again.');
+        }
+    };
+    const stopSpeechRecognition = async () => {
+        try {
+            console.log('🎤 Stopping speech recognition...');
+            await ExpoSpeechRecognitionModule.stop();
+            setIsListening(false);
+        }
+        catch (error) {
+            console.error('🎤 Failed to stop speech recognition:', error);
+            setIsListening(false);
+        }
+    };
+    const handleMicPress = async () => {
+        if (isListening) {
+            await stopSpeechRecognition();
+        }
+        else {
+            await startSpeechRecognition();
         }
     };
     const handleVoice = async () => {
@@ -330,6 +468,7 @@ const ChatScreen = ({ onClose, config = {} }) => {
         // Send file to webhook service if URI is provided
         if (uri && (type === 'file' || type === 'image')) {
             console.log('📤 addMediaMessage: Sending to webhook service');
+            setIsLoading(true);
             try {
                 const aiResponse = await webhookService.sendFileMessage(uri, sessionId);
                 const aiMessage = {
@@ -350,6 +489,9 @@ const ChatScreen = ({ onClose, config = {} }) => {
                     timestamp: new Date(),
                 };
                 setMessages(prev => [...prev, errorMessage]);
+            }
+            finally {
+                setIsLoading(false);
             }
         }
         else {
@@ -425,46 +567,18 @@ const ChatScreen = ({ onClose, config = {} }) => {
                         ], children: message.text })] })), message.mediaType === 'audio' && (_jsxs(View, { style: styles.audioContainer, children: [_jsx(MaterialIcons, { name: "audiotrack", size: 24, color: message.sender === 'user' ? "#FFFFFF" : theme.primaryColor || "#007AFF" }), _jsx(Text, { style: [
                             styles.fileName,
                             message.sender === 'user' ? styles.userMessageText : styles.aiMessageText
-                        ], children: message.text })] })), message.sender === 'ai' ? (_jsx(Markdown, { style: {
-                    body: {
-                        color: message.sender === 'user' ? '#FFFFFF' : '#333333',
-                        fontSize: 16,
-                        lineHeight: 20,
-                        ...(theme.textColor && { color: theme.textColor })
-                    },
-                    strong: {
-                        fontWeight: 'bold',
-                        color: message.sender === 'user' ? '#FFFFFF' : '#333333'
-                    },
-                    em: {
-                        fontStyle: 'italic'
-                    },
-                    bullet_list: {
-                        marginVertical: 4
-                    },
-                    list_item: {
-                        marginVertical: 2
-                    },
-                    code_inline: {
-                        backgroundColor: '#F0F0F0',
-                        borderRadius: 4,
-                        paddingHorizontal: 4,
-                        paddingVertical: 2,
-                        fontFamily: 'monospace'
-                    },
-                    code_block: {
-                        backgroundColor: '#F0F0F0',
-                        borderRadius: 8,
-                        padding: 12,
-                        marginVertical: 8,
-                        fontFamily: 'monospace'
-                    }
-                }, children: message.text })) : (_jsx(Text, { style: [
+                        ], children: message.text })] })), message.sender === 'ai' ? (_jsx(Text, { style: [
+                    styles.messageText,
+                    styles.aiMessageText,
+                    theme.textColor && { color: theme.textColor }
+                ], children: message.text })) : (_jsx(Text, { style: [
                     styles.messageText,
                     message.sender === 'user' ? styles.userMessageText : styles.aiMessageText,
                     theme.textColor && { color: theme.textColor }
                 ], children: message.text }))] }, message.id));
-    return (_jsxs(SafeAreaView, { style: [styles.container, theme.backgroundColor && { backgroundColor: theme.backgroundColor }], children: [_jsx(StatusBar, { barStyle: "dark-content", backgroundColor: "#FFFFFF" }), _jsxs(View, { style: styles.header, children: [_jsx(TouchableOpacity, { onPress: onClose, children: _jsx(MaterialIcons, { name: "close", size: 24, color: "#000000" }) }), _jsx(Image, { source: config.logoSource || rhbLogo, style: styles.rhbLogo, resizeMode: "contain" }), _jsx(TouchableOpacity, { children: _jsx(MaterialIcons, { name: "fullscreen", size: 24, color: "#000000" }) })] }), _jsxs(KeyboardAvoidingView, { style: styles.content, behavior: Platform.OS === 'ios' ? 'padding' : 'height', children: [_jsx(ScrollView, { ref: scrollViewRef, style: styles.messagesContainer, onContentSizeChange: () => { var _a; return (_a = scrollViewRef.current) === null || _a === void 0 ? void 0 : _a.scrollToEnd({ animated: true }); }, children: messages.map(renderMessage) }), !inputText.trim() && messages.length === 0 && (_jsx(View, { style: styles.promptsContainer, children: _jsx(ScrollView, { horizontal: true, showsHorizontalScrollIndicator: false, contentContainerStyle: styles.promptsScrollContent, children: suggestedPrompts.map((prompt, index) => (_jsxs(TouchableOpacity, { style: styles.promptCard, onPress: () => selectPrompt(prompt), children: [_jsx(Text, { style: styles.promptTitle, children: prompt.title }), _jsx(Text, { style: styles.promptDescription, children: prompt.description })] }, index))) }) })), _jsx(View, { style: styles.inputContainer, children: _jsxs(View, { style: styles.inputWrapper, children: [_jsx(TouchableOpacity, { style: styles.addButton, onPress: toggleBottomSheet, children: _jsx(MaterialIcons, { name: "add", size: 20, color: "#666666" }) }), _jsxs(View, { style: styles.textInputContainer, children: [_jsx(TextInput, { ref: textInputRef, style: styles.textInput, value: inputText, onChangeText: setInputText, placeholder: "Ask anything", placeholderTextColor: "#999999", multiline: true, maxLength: 1000, onFocus: () => setShowBottomSheet(false) }), _jsxs(View, { style: styles.inputActions, children: [!inputText.trim() && (_jsx(TouchableOpacity, { style: styles.micButton, children: _jsx(MaterialIcons, { name: "mic", size: 20, color: "#666666" }) })), _jsx(TouchableOpacity, { style: [styles.sendButton, inputText.trim() ? styles.sendButtonActive : null], onPress: sendMessage, disabled: !inputText.trim(), children: _jsx(MaterialIcons, { name: "send", size: 20, color: inputText.trim() ? "#FFFFFF" : "#666666" }) })] })] })] }) }), renderBottomSheet()] }), _jsx(ImagePreviewModal, { visible: showImagePreview, imageUri: previewImageUri, onClose: () => setShowImagePreview(false), onSend: handleImageWithContext })] }));
+    const renderLoadingIndicator = () => (_jsx(View, { style: [styles.messageContainer, styles.aiMessage], children: _jsxs(View, { style: styles.loadingContainer, children: [_jsx(ActivityIndicator, { size: "small", color: "#0066CC" }), _jsx(Text, { style: [styles.messageText, styles.loadingText], children: "RHB.ai is typing..." })] }) }));
+    const renderListeningIndicator = () => (_jsx(View, { style: [styles.messageContainer, styles.aiMessage, styles.listeningMessage], children: _jsxs(View, { style: styles.loadingContainer, children: [_jsx(MaterialIcons, { name: "mic", size: 20, color: "#0066CC" }), _jsx(Text, { style: [styles.messageText, styles.loadingText], children: "Listening..." })] }) }));
+    return (_jsxs(SafeAreaView, { style: [styles.container, theme.backgroundColor && { backgroundColor: theme.backgroundColor }], children: [_jsx(StatusBar, { barStyle: "dark-content", backgroundColor: "#FFFFFF" }), _jsxs(View, { style: styles.header, children: [_jsx(TouchableOpacity, { onPress: onClose, children: _jsx(MaterialIcons, { name: "close", size: 24, color: "#000000" }) }), _jsx(Image, { source: config.logoSource || rhbLogo, style: styles.rhbLogo, resizeMode: "contain" }), _jsx(TouchableOpacity, { children: _jsx(MaterialIcons, { name: "fullscreen", size: 24, color: "#000000" }) })] }), _jsxs(KeyboardAvoidingView, { style: styles.content, behavior: Platform.OS === 'ios' ? 'padding' : 'height', children: [_jsxs(ScrollView, { ref: scrollViewRef, style: styles.messagesContainer, onContentSizeChange: () => { var _a; return (_a = scrollViewRef.current) === null || _a === void 0 ? void 0 : _a.scrollToEnd({ animated: true }); }, children: [messages.map(renderMessage), isLoading && renderLoadingIndicator(), isListening && renderListeningIndicator()] }), !inputText.trim() && messages.length === 0 && (_jsx(View, { style: styles.promptsContainer, children: _jsx(ScrollView, { horizontal: true, showsHorizontalScrollIndicator: false, contentContainerStyle: styles.promptsScrollContent, children: suggestedPrompts.map((prompt, index) => (_jsxs(TouchableOpacity, { style: styles.promptCard, onPress: () => selectPrompt(prompt), children: [_jsx(Text, { style: styles.promptTitle, children: prompt.title }), _jsx(Text, { style: styles.promptDescription, children: prompt.description })] }, index))) }) })), _jsx(View, { style: styles.inputContainer, children: _jsxs(View, { style: styles.inputWrapper, children: [_jsx(TouchableOpacity, { style: styles.addButton, onPress: toggleBottomSheet, children: _jsx(MaterialIcons, { name: "add", size: 20, color: "#666666" }) }), _jsxs(View, { style: styles.textInputContainer, children: [_jsx(TextInput, { ref: textInputRef, style: styles.textInput, value: inputText, onChangeText: setInputText, placeholder: "Ask anything", placeholderTextColor: "#999999", multiline: true, maxLength: 1000, onFocus: () => setShowBottomSheet(false) }), _jsxs(View, { style: styles.inputActions, children: [!inputText.trim() && (_jsx(TouchableOpacity, { style: [styles.micButton, isListening && styles.micButtonActive], onPress: handleMicPress, disabled: isLoading, children: _jsx(MaterialIcons, { name: isListening ? "mic-off" : "mic", size: 20, color: isListening ? "#FF4444" : "#666666" }) })), _jsx(TouchableOpacity, { style: [styles.sendButton, inputText.trim() && !isLoading ? styles.sendButtonActive : null], onPress: sendMessage, disabled: !inputText.trim() || isLoading, children: isLoading ? (_jsx(ActivityIndicator, { size: 20, color: "#666666" })) : (_jsx(MaterialIcons, { name: "send", size: 20, color: inputText.trim() && !isLoading ? "#FFFFFF" : "#666666" })) })] })] })] }) }), renderBottomSheet()] }), _jsx(ImagePreviewModal, { visible: showImagePreview, imageUri: previewImageUri, onClose: () => setShowImagePreview(false), onSend: handleImageWithContext })] }));
 };
 const styles = StyleSheet.create({
     container: {
@@ -607,6 +721,11 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
     },
+    micButtonActive: {
+        backgroundColor: '#FFE5E5',
+        borderWidth: 2,
+        borderColor: '#FF4444',
+    },
     sendButton: {
         width: 32,
         height: 32,
@@ -681,6 +800,20 @@ const styles = StyleSheet.create({
     fileName: {
         fontSize: 14,
         fontWeight: '500',
+    },
+    loadingContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    loadingText: {
+        fontSize: 14,
+        color: '#666666',
+        fontStyle: 'italic',
+    },
+    listeningMessage: {
+        backgroundColor: '#E3F2FD',
+        borderColor: '#2196F3',
     },
 });
 export default ChatScreen;
