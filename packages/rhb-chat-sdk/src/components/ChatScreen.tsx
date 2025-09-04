@@ -22,6 +22,7 @@ import { AudioRecorder, AudioPlayer } from 'expo-audio';
 import * as MediaLibrary from 'expo-media-library';
 import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import { ExpoSpeechRecognitionModule, useSpeechRecognitionEvent } from 'expo-speech-recognition';
+import Markdown from 'react-native-markdown-display';
 import { ChatScreenProps, ChatMessage, SuggestedPrompt } from '../types';
 import ImagePreviewModal from './ImagePreviewModal';
 import WebhookService from '../services/webhook';
@@ -737,15 +738,23 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ onClose, config = {} }) => {
         </View>
       )}
       {message.sender === 'ai' ? (
-        <Text style={[
-          styles.messageText,
-          styles.aiMessageText,
-          theme.textColor && { color: theme.textColor }
-        ]}>{message.text}</Text>
+        <Markdown style={{
+          ...markdownStyles,
+          body: {
+            ...markdownStyles.body,
+            color: theme.textColor || markdownStyles.body.color,
+          },
+          text: {
+            ...markdownStyles.text,
+            color: theme.textColor || markdownStyles.text.color,
+          },
+        }}>
+          {message.text}
+        </Markdown>
       ) : (
         <Text style={[
           styles.messageText,
-          message.sender === 'user' ? styles.userMessageText : styles.aiMessageText,
+          styles.userMessageText,
           theme.textColor && { color: theme.textColor }
         ]}>{message.text}</Text>
       )}
@@ -891,6 +900,50 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ onClose, config = {} }) => {
       />
     </SafeAreaView>
   );
+};
+
+const markdownStyles = {
+  body: {
+    fontSize: 16,
+    lineHeight: 22,
+    color: '#333333',
+    margin: 0,
+    padding: 0,
+  },
+  text: {
+    fontSize: 16,
+    lineHeight: 22,
+    color: '#333333',
+  },
+  strong: {
+    fontWeight: 'bold',
+    color: '#000000',
+  },
+  paragraph: {
+    marginBottom: 8,
+    marginTop: 0,
+  },
+  list_item: {
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
+    alignItems: 'flex-start',
+    marginBottom: 4,
+  },
+  bullet_list: {
+    marginBottom: 8,
+  },
+  bullet_list_icon: {
+    fontSize: 16,
+    lineHeight: 22,
+    marginRight: 8,
+    color: '#333333',
+  },
+  bullet_list_content: {
+    flex: 1,
+    fontSize: 16,
+    lineHeight: 22,
+    color: '#333333',
+  },
 };
 
 const styles = StyleSheet.create({
