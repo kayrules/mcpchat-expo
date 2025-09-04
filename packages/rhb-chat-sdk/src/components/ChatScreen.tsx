@@ -116,6 +116,18 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ onClose, config = {} }) => {
   useEffect(() => {
     const initializeSpeechRecognition = async () => {
       try {
+        // Check if ExpoSpeechRecognitionModule is available
+        if (!ExpoSpeechRecognitionModule) {
+          console.warn('🎤 Speech recognition module not available - native module not built');
+          return;
+        }
+
+        // Check if getAvailableAsync method exists
+        if (typeof ExpoSpeechRecognitionModule.getAvailableAsync !== 'function') {
+          console.warn('🎤 Speech recognition methods not available - app needs native rebuild');
+          return;
+        }
+
         // Check if speech recognition is available
         const isAvailable = await ExpoSpeechRecognitionModule.getAvailableAsync();
         console.log('🎤 Speech recognition available:', isAvailable);
@@ -130,6 +142,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ onClose, config = {} }) => {
         }
       } catch (error) {
         console.error('🎤 Error initializing speech recognition:', error);
+        console.warn('🎤 Speech recognition will be disabled - native module may need to be rebuilt');
       }
     };
 
@@ -399,6 +412,17 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ onClose, config = {} }) => {
   // Speech Recognition Setup and Functions
   const requestSpeechPermissions = async (): Promise<boolean> => {
     try {
+      // Check if module is available
+      if (!ExpoSpeechRecognitionModule || typeof ExpoSpeechRecognitionModule.requestPermissionsAsync !== 'function') {
+        console.warn('🎤 Speech recognition permissions not available - native module needs rebuild');
+        Alert.alert(
+          'Speech Recognition Unavailable',
+          'Voice input requires the app to be rebuilt with speech recognition support. Please rebuild the app to enable this feature.',
+          [{ text: 'OK' }]
+        );
+        return false;
+      }
+
       console.log('🎤 Requesting speech recognition permissions...');
       const result = await ExpoSpeechRecognitionModule.requestPermissionsAsync();
       
@@ -433,6 +457,11 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ onClose, config = {} }) => {
 
   const startSpeechRecognition = async () => {
     try {
+      // Check if module is available
+      if (!ExpoSpeechRecognitionModule || typeof ExpoSpeechRecognitionModule.start !== 'function') {
+        throw new Error('Speech recognition module not available - app needs native rebuild');
+      }
+
       if (!speechPermissionGranted) {
         const granted = await requestSpeechPermissions();
         if (!granted) return;
@@ -451,13 +480,30 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ onClose, config = {} }) => {
     } catch (error) {
       console.error('🎤 Failed to start speech recognition:', error);
       setIsListening(false);
-      Alert.alert('Speech Recognition Error', 'Failed to start voice input. Please try again.');
+      
+      if (error.message.includes('native rebuild')) {
+        Alert.alert(
+          'Speech Recognition Unavailable', 
+          'Voice input requires the app to be rebuilt. Please rebuild the app to enable speech recognition.',
+          [{ text: 'OK' }]
+        );
+      } else {
+        Alert.alert('Speech Recognition Error', 'Failed to start voice input. Please try again.');
+      }
     }
   };
 
   const stopSpeechRecognition = async () => {
     try {
       console.log('🎤 Stopping speech recognition...');
+      
+      // Check if module is available
+      if (!ExpoSpeechRecognitionModule) {
+        console.warn('🎤 Speech recognition module not available for stopping');
+        setIsListening(false);
+        return;
+      }
+      
       await ExpoSpeechRecognitionModule.stop();
       setIsListening(false);
     } catch (error) {
@@ -467,18 +513,29 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ onClose, config = {} }) => {
   };
 
   const handleMicPress = async () => {
-    if (isListening) {
-      await stopSpeechRecognition();
-    } else {
-      await startSpeechRecognition();
+    try {
+      if (isListening) {
+        await stopSpeechRecognition();
+      } else {
+        await startSpeechRecognition();
+      }
+    } catch (error) {
+      console.error('🎤 Microphone error:', error);
+      setIsListening(false);
+      Alert.alert(
+        'Microphone Error', 
+        'Voice input is not available. Please ensure microphone permissions are granted and the app is properly configured.',
+        [{ text: 'OK' }]
+      );
     }
   };
 
   const handleVoice = async () => {
-    if (isRecording) {
-      stopRecording();
+    // Use speech-to-text instead of audio recording for better UX
+    if (isListening) {
+      await stopSpeechRecognition();
     } else {
-      startRecording();
+      await startSpeechRecognition();
     }
   };
 
@@ -613,7 +670,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ onClose, config = {} }) => {
       { icon: 'camera-alt', label: 'Camera', type: 'camera' },
       { icon: 'photo-library', label: 'Photos', type: 'photos' },
       { icon: 'folder', label: 'Files', type: 'files' },
-      { icon: isRecording ? 'stop' : 'mic', label: isRecording ? 'Stop' : 'Voice', type: 'voice' },
+      { icon: isListening ? 'mic-off' : 'mic', label: isListening ? 'Stop' : 'Voice', type: 'voice' },
     ];
 
     return (
@@ -626,8 +683,15 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ onClose, config = {} }) => {
               style={styles.shortcutButton}
               onPress={() => handleShortcut(shortcut.type)}
             >
-              <View style={styles.shortcutIconContainer}>
-                <MaterialIcons name={shortcut.icon as any} size={24} color={theme.primaryColor || "#007AFF"} />
+              <View style={[
+                styles.shortcutIconContainer,
+                shortcut.type === 'voice' && isListening && styles.shortcutIconListening
+              ]}>
+                <MaterialIcons 
+                  name={shortcut.icon as any} 
+                  size={24} 
+                  color={shortcut.type === 'voice' && isListening ? "#FF4444" : (theme.primaryColor || "#007AFF")} 
+                />
               </View>
               <Text style={styles.shortcutLabel}>{shortcut.label}</Text>
             </TouchableOpacity>
@@ -1022,6 +1086,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 8,
+  },
+  shortcutIconListening: {
+    backgroundColor: '#FFE5E5',
+    borderWidth: 2,
+    borderColor: '#FF4444',
   },
   shortcutLabel: {
     fontSize: 14,

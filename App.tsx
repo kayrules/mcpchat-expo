@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View, Modal } from 'react-native';
+import { StyleSheet, Text, View, Modal, ImageBackground } from 'react-native';
 // Development import (will use built package when published)
 import { ChatScreen, FloatingChatButton, ChatConfig } from './packages/rhb-chat-sdk/src';
 
@@ -96,39 +96,35 @@ export default function App() {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.text}>RHB Agent Demo App</Text>
-      <Text style={styles.subtext}>Sample integration of RHB Chat SDK</Text>
-      <StatusBar style="auto" />
-      
-      <FloatingChatButton onPress={openChat} />
-      
-      <Modal
-        visible={isChatOpen}
-        animationType="slide"
-        presentationStyle="fullScreen"
-      >
-        <ChatScreen onClose={closeChat} config={chatConfig} />
-      </Modal>
-    </View>
+    <ImageBackground 
+      source={require('./assets/background.jpeg')} 
+      style={styles.container}
+      resizeMode="cover"
+    >
+      <View style={styles.overlay}>
+        <StatusBar style="light" />
+        
+        <FloatingChatButton onPress={openChat} />
+        
+        <Modal
+          visible={isChatOpen}
+          animationType="slide"
+          presentationStyle="fullScreen"
+        >
+          <ChatScreen onClose={closeChat} config={chatConfig} />
+        </Modal>
+      </View>
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+  },
+  overlay: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  text: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 8,
-  },
-  subtext: {
-    fontSize: 16,
-    color: '#666',
   },
 });

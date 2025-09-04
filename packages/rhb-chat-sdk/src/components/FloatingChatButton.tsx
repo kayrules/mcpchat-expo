@@ -1,13 +1,16 @@
 import React from 'react';
-import { TouchableOpacity, StyleSheet, Animated } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { TouchableOpacity, StyleSheet, Animated, Image } from 'react-native';
 import { FloatingChatButtonProps } from '../types';
 
 const FloatingChatButton: React.FC<FloatingChatButtonProps> = ({ onPress, style }) => {
   return (
     <TouchableOpacity style={[styles.container, style]} onPress={onPress} activeOpacity={0.8}>
       <Animated.View style={styles.button}>
-        <MaterialCommunityIcons name="chat" size={34} color="#FFFFFF" />
+        <Image 
+          source={require('../../../../assets/ai-stars.png')} 
+          style={styles.icon}
+          resizeMode="contain"
+        />
       </Animated.View>
     </TouchableOpacity>
   );
@@ -16,15 +19,15 @@ const FloatingChatButton: React.FC<FloatingChatButtonProps> = ({ onPress, style 
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    bottom: 60,
-    right: 35,
+    top: 61,
+    right: 65,
     zIndex: 999,
   },
   button: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    backgroundColor: '#007AFF',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#ffffffff',
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 8,
@@ -35,6 +38,10 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.3,
     shadowRadius: 4.65,
+  },
+  icon: {
+    width: 24,
+    height: 24,
   },
 });
 

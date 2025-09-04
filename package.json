@@ -9,9 +9,8 @@
     "web": "expo start --web"
   },
   "dependencies": {
-    "@expo/vector-icons": "^15.0.2",
+    "@expo/vector-icons": "^14.0.0",
     "@react-native-community/masked-view": "^0.1.11",
-    "@react-native-ml-kit/text-recognition": "^2.0.0",
     "@react-navigation/native": "^7.1.17",
     "@react-navigation/stack": "^7.4.7",
     "expo": "~53.0.22",
